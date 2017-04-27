@@ -1,0 +1,1095 @@
+﻿<Window x:Class="TimeMerge.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:TimeMerge"
+        xmlns:views="clr-namespace:TimeMerge.View"
+        xmlns:viewmodels="clr-namespace:TimeMerge.ViewModel"
+        xmlns:utils="clr-namespace:TimeMerge.Utils"
+        xmlns:controls="clr-namespace:TimeMerge.Controls"
+        xmlns:AVC="clr-namespace:AC.AvalonControlsLibrary.Controls"
+        mc:Ignorable="d" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Title="{Binding TitleText, Mode=OneWay}"
+        FocusManager.FocusedElement="{Binding ElementName=dataGrid}"
+        SizeToContent="WidthAndHeight" KeyUp="Window_KeyUp" Loaded="Window_Loaded" WindowStyle="None" ResizeMode="CanMinimize" AllowsTransparency="True" Background="Transparent" >
+    <Window.Resources>
+        <viewmodels:DesignMainViewModel x:Key="designViewModel" />
+        <local:TimeSpanSignConverter x:Key="timeSpanSignConverter" />
+        <local:TimeSpanToDoubleConverter x:Key="timeSpanToDoubleConverter" />
+        <utils:VisibilityConverter x:Key="visibilityConverter" />
+        <local:CorrectionsFontStyleConverter x:Key="correctionsFontStyleConverter" />
+<!-- 
+        <utils:DebugConverter x:Key="debugConverter" />
+ -->
+        <ContextMenu x:Key="interruptionTypeContextMenu" />
+        <Style x:Key="GenericCellStyle" TargetType="DataGridCell">
+<!-- 
+            <Setter Property="MinWidth" Value="80" />
+ -->
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsNoWorkDay}" Value="True">
+                    <Setter Property="Background" Value="DarkOrange" />
+                    <Setter Property="Foreground" Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DayDurationCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource GenericCellStyle}">
+            <Setter Property="Background" Value="LightGray" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsNoWorkDay}" Value="True">
+                    <Setter Property="Background" Value="DarkOrange" />
+                    <Setter Property="Foreground" Value="White" />
+                </DataTrigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="Black" />
+                </Trigger>
+                <DataTrigger Binding="{Binding HasAutoDecrementedLunchTime}" Value="True">
+                    <Setter Property="Background" Value="Yellow" />
+                    <Setter Property="ToolTip" Value="Obed automaticky odrátaný: 20 min" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <Style x:Key="ImageOnlyButtonStyle" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ImageOnlyButtonStyle_WithHoverEffect" TargetType="Button" >
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="4" >
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+    </Window.Resources>
+    <Grid x:Name="mainGrid" d:DataContext="{Binding Source={StaticResource designViewModel}}" >
+        <Border Margin="0,20,0,0" Padding="15,110,15,15" BorderBrush="Orange" BorderThickness="2" MouseLeftButtonDown="Border_MouseLeftButtonDown" CornerRadius="25">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="Yellow" Offset="0" />
+                    <GradientStop Color="Orange" Offset="0.2" />
+                    <GradientStop Color="Orange" Offset="0.9" />
+                    <GradientStop Color="Yellow" Offset="1.05" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <DataGrid x:Name="dataGrid" AutoGenerateColumns="False" MinWidth="400" MinHeight="100" Margin="0,8,0,0"
+                        ItemsSource="{Binding MonthViewModel.Days}" CellStyle="{StaticResource GenericCellStyle}"
+                        CanUserAddRows="False" CanUserDeleteRows="False" SelectionUnit="Cell"
+                        ContextMenu="{StaticResource interruptionTypeContextMenu}" ContextMenuOpening="DataGrid_ContextMenuOpening"
+                        PreviewKeyDown="dataGrid_PreviewKeyDown" CellEditEnding="dataGrid_CellEditEnding"
+                        FocusVisualStyle="{x:Null}" >
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Deň" Binding="{Binding Day, Mode=OneTime}" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Odpracované" Binding="{Binding Duration, StringFormat=hh\\:mm}" IsReadOnly="True" CellStyle="{StaticResource DayDurationCellStyle}" />
+
+        <!-- ======================== WORKSPANS ======================== -->
+                
+                    <!-- WorkSpan 0 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan0Start}"
+                                                                    HasCorrections="{Binding WorkSpan0HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan0ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan0Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan0HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan0ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan0End}"
+                                                                    HasCorrections="{Binding WorkSpan0HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan0ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan0VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan0End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan0HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan0ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 1 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan1Start}"
+                                                                    HasCorrections="{Binding WorkSpan1HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan1ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan1Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan1HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan1ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan1End}"
+                                                                    HasCorrections="{Binding WorkSpan1HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan1ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan1VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan1End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan1HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan1ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 2 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan2Start}"
+                                                                    HasCorrections="{Binding WorkSpan2HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan2ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan2Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan2HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan2ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan2End}"
+                                                                    HasCorrections="{Binding WorkSpan2HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan2ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan2VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan2End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan2HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan2ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 3 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan3Start}"
+                                                                    HasCorrections="{Binding WorkSpan3HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan3ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan3Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan3HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan3ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan3End}"
+                                                                    HasCorrections="{Binding WorkSpan3HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan3ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan3VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan3End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan3HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan3ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 4 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan4Start}"
+                                                                    HasCorrections="{Binding WorkSpan4HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan4ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan4Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan4HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan4ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan4End}"
+                                                                    HasCorrections="{Binding WorkSpan4HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan4ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan4VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan4End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan4HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan4ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 5 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan5Start}"
+                                                                    HasCorrections="{Binding WorkSpan5HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan5ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan5Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan5HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan5ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan5End}"
+                                                                    HasCorrections="{Binding WorkSpan5HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan5ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan5VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan5End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan5HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan5ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 6 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan6Start}"
+                                                                    HasCorrections="{Binding WorkSpan6HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan6ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan6Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan6HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan6ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan6End}"
+                                                                    HasCorrections="{Binding WorkSpan6HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan6ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan6VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan6End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan6HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan6ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 7 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan7Start}"
+                                                                    HasCorrections="{Binding WorkSpan7HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan7ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan7Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan7HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan7ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan7End}"
+                                                                    HasCorrections="{Binding WorkSpan7HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan7ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan7VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan7End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan7HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan7ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 8 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan8Start}"
+                                                                    HasCorrections="{Binding WorkSpan8HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan8ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan8Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan8HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan8ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan8End}"
+                                                                    HasCorrections="{Binding WorkSpan8HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan8ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan8VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan8End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan8HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan8ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- WorkSpan 9 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan9Start}"
+                                                                    HasCorrections="{Binding WorkSpan9HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan9ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan9Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan9HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan9ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan9End}"
+                                                                    HasCorrections="{Binding WorkSpan9HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    ToolTip="{Binding WorkSpan9ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding WorkSpan9VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding WorkSpan9End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding WorkSpan9HasCorrections}"
+                                                                    IsInterruptWorkSpan="False"
+                                                                    ToolTip="{Binding WorkSpan9ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+
+        <!-- ======================== INTERRUPTIONS ======================== -->
+
+                    <!-- Interruption 0 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt0Start}"
+                                                                    HasCorrections="{Binding Interrupt0HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt0Type}"
+                                                                    ToolTip="{Binding Interrupt0ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt0Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt0HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt0Type}"
+                                                                    ToolTip="{Binding Interrupt0ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt0End}"
+                                                                    HasCorrections="{Binding Interrupt0HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt0Type}"
+                                                                    ToolTip="{Binding Interrupt0ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt0VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt0End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt0HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt0Type}"
+                                                                    ToolTip="{Binding Interrupt0ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Interruption 1 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt1Start}"
+                                                                    HasCorrections="{Binding Interrupt1HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt1Type}"
+                                                                    ToolTip="{Binding Interrupt1ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt1Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt1HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt1Type}"
+                                                                    ToolTip="{Binding Interrupt1ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt1End}"
+                                                                    HasCorrections="{Binding Interrupt1HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt1Type}"
+                                                                    ToolTip="{Binding Interrupt1ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt1VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt1End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt1HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt1Type}"
+                                                                    ToolTip="{Binding Interrupt1ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Interruption 2 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt2Start}"
+                                                                    HasCorrections="{Binding Interrupt2HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt2Type}"
+                                                                    ToolTip="{Binding Interrupt2ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt2Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt2HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt2Type}"
+                                                                    ToolTip="{Binding Interrupt2ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt2End}"
+                                                                    HasCorrections="{Binding Interrupt2HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt2Type}"
+                                                                    ToolTip="{Binding Interrupt2ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt2VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt2End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt2HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt2Type}"
+                                                                    ToolTip="{Binding Interrupt2ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Interruption 3 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt3Start}"
+                                                                    HasCorrections="{Binding Interrupt3HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt3Type}"
+                                                                    ToolTip="{Binding Interrupt3ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt3Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt3HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt3Type}"
+                                                                    ToolTip="{Binding Interrupt3ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt3End}"
+                                                                    HasCorrections="{Binding Interrupt3HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt3Type}"
+                                                                    ToolTip="{Binding Interrupt3ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt3VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt3End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt3HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt3Type}"
+                                                                    ToolTip="{Binding Interrupt3ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Interruption 4 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt4Start}"
+                                                                    HasCorrections="{Binding Interrupt4HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt4Type}"
+                                                                    ToolTip="{Binding Interrupt4ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt4Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt4HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt4Type}"
+                                                                    ToolTip="{Binding Interrupt4ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt4End}"
+                                                                    HasCorrections="{Binding Interrupt4HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt4Type}"
+                                                                    ToolTip="{Binding Interrupt4ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt4VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt4End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt4HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt4Type}"
+                                                                    ToolTip="{Binding Interrupt4ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Interruption 5 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt5Start}"
+                                                                    HasCorrections="{Binding Interrupt5HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt5Type}"
+                                                                    ToolTip="{Binding Interrupt5ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt5Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt5HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt5Type}"
+                                                                    ToolTip="{Binding Interrupt5ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt5End}"
+                                                                    HasCorrections="{Binding Interrupt5HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt5Type}"
+                                                                    ToolTip="{Binding Interrupt5ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt5VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt5End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt5HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt5Type}"
+                                                                    ToolTip="{Binding Interrupt5ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Interruption 6 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt6Start}"
+                                                                    HasCorrections="{Binding Interrupt6HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt6Type}"
+                                                                    ToolTip="{Binding Interrupt6ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt6Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt6HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt6Type}"
+                                                                    ToolTip="{Binding Interrupt6ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt6End}"
+                                                                    HasCorrections="{Binding Interrupt6HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt6Type}"
+                                                                    ToolTip="{Binding Interrupt6ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt6VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt6End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt6HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt6Type}"
+                                                                    ToolTip="{Binding Interrupt6ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Interruption 7 -->
+                    <DataGridTemplateColumn Header="od" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt7Start}"
+                                                                    HasCorrections="{Binding Interrupt7HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt7Type}"
+                                                                    ToolTip="{Binding Interrupt7ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="False" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt7Start, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt7HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt7Type}"
+                                                                    ToolTip="{Binding Interrupt7ToolTip}"
+                                                                    IsEndOfInterval="False"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="do" >
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt7End}"
+                                                                    HasCorrections="{Binding Interrupt7HasCorrections}"
+                                                                    IsNoWorkDay="{Binding IsNoWorkDay}"
+                                                                    InterruptType="{Binding Interrupt7Type}"
+                                                                    ToolTip="{Binding Interrupt7ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="False"
+                                                                    VirtualTimeShown="{Binding Interrupt7VirtualTimeEnding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <controls:InterruptionCellControl TextContent="{Binding Interrupt7End, Mode=TwoWay}"
+                                                                    HasCorrections="{Binding Interrupt7HasCorrections}"
+                                                                    InterruptType="{Binding Interrupt7Type}"
+                                                                    ToolTip="{Binding Interrupt7ToolTip}"
+                                                                    IsEndOfInterval="True"
+                                                                    IsInEditMode="True" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="25,-5,0,0">
+            <controls:TimeMergeGauge Value="{Binding MonthViewModel.BalanceWholeMonth, Mode=OneWay, Converter={StaticResource timeSpanToDoubleConverter}}" Focusable="False" />
+            <controls:PillButtonCheckbox Content="&#x2211; |&#x2460;" IsChecked="{Binding MonthViewModel.IsBalanceASummaryThroughAllMonths}"
+                                         HorizontalAlignment="Center" VerticalAlignment="Bottom" Foreground="Brown" Margin="0,0,0,25" Padding="6,3,6,3" Focusable="False" >
+                <controls:PillButtonCheckbox.ToolTip>
+                    <Grid Grid.IsSharedSizeScope="True">
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition SharedSizeGroup="sign" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#x2211;"  Grid.Row="0" /><TextBlock Grid.Column="1" Text="   - Čas aj s prevodom" />
+                        <TextBlock Text="&#x2460;" Grid.Row="1" /><TextBlock Grid.Row="1" Grid.Column="1" Text="   - Čas iba za tento mesiac (bez prevodu z predošlého mesiaca)" />
+                    </Grid>
+                </controls:PillButtonCheckbox.ToolTip>
+            </controls:PillButtonCheckbox>
+        </Grid>
+        
+        <!--<Image Source="Images/TimeMergeRibbonStatus.png" Height="150" HorizontalAlignment="Left" VerticalAlignment="Top" DockPanel.Dock="Left" />
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="50,90,0,0">
+            <TextBlock Text="{Binding MonthViewModel.BalanceWholeMonth, Converter={StaticResource timeSpanSignConverter}, FallbackValue='+'}" FontSize="20" FontWeight="Bold" />
+            <TextBlock Text="{Binding MonthViewModel.BalanceWholeMonth, StringFormat=h\\:mm, FallbackValue='0:00'}" FontSize="20" FontWeight="Bold" />
+        </StackPanel>-->
+
+        <!-- Minimize Button -->
+        <controls:ImageButton x:Name="minimizeButton" Focusable="False" VerticalAlignment="Top" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="0,35,40,0">
+            <Image Source="\Images\Minimize.png" Height="20" />
+            <controls:ImageButton.HoverContent>
+                <Image Source="\Images\Minimize_Hover.png" Height="20" />
+            </controls:ImageButton.HoverContent>
+        </controls:ImageButton>
+
+        <!-- Close Button -->
+        <controls:ImageButton x:Name="closeButton" Focusable="False" VerticalAlignment="Top" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="0,35,15,0">
+            <Image Source="\Images\Close.png" Height="20" />
+            <controls:ImageButton.HoverContent>
+                <Image Source="\Images\Close_Hover.png" Height="20" />
+            </controls:ImageButton.HoverContent>
+        </controls:ImageButton>
+        
+        <!-- Main Buttons -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" >
+            <controls:ImageButton Focusable="False" VerticalAlignment="Center" Margin="0,0,-25,0" Click="PreviousMonthButton_Click" ToolTip="Predošlý mesiac">
+                <Image Source="\Images\Left.png" Height="35" />
+                <controls:ImageButton.HoverContent>
+                    <Image Source="\Images\Left_Hover.png" Height="35" />
+                </controls:ImageButton.HoverContent>
+            </controls:ImageButton>
+            <controls:ImageButton Focusable="False" VerticalAlignment="Center" Margin="0,0,-25,0" Panel.ZIndex="1" ToolTip="{Binding RefreshButtonTooltip}" ToolTipService.ShowOnDisabled="True"
+                                  Command="{Binding JumpToYearMonthCommand}" CommandParameter="{x:Static viewmodels:MainViewModel+RefreshCommandOrigin.User}">
+                <Image Source="\Images\Refresh.png" Height="70" />
+                <controls:ImageButton.HoverContent>
+                    <Image Source="\Images\Refresh_Hover.png" Height="70" />
+                </controls:ImageButton.HoverContent>
+            </controls:ImageButton>
+            <controls:ImageButton Focusable="False" VerticalAlignment="Center" ToolTip="Ďalší mesiac" Click="NextMonthButton_Click">
+                <Image Source="\Images\Right.png" Height="35" />
+                <controls:ImageButton.HoverContent>
+                    <Image Source="\Images\Right_Hover.png" Height="35" />
+                </controls:ImageButton.HoverContent>
+            </controls:ImageButton>
+        </StackPanel>
+
+        <!-- Year and Month -->
+        <TextBlock Text="{Binding YearMonthString, FallbackValue='Október 2011'}" FontSize="20" FontWeight="Bold" IsHitTestVisible="False" Foreground="DarkOrange"  HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,22,0,0" />
+        
+        <!-- User's Name -->
+        <TextBlock Text="{Binding UserName, FallbackValue='User Name'}" FontStyle="Italic" FontWeight="Bold" IsHitTestVisible="False" Foreground="DarkOrange" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,120,22,0" />
+
+        <!-- Mail and Settings -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,67,40,0">
+            <Button Style="{StaticResource ImageOnlyButtonStyle_WithHoverEffect}" Margin="0,0,3,0" ToolTip="Poslať korekciu" IsEnabled="{Binding MonthViewModel.HasCorrections}" Command="{Binding MonthViewModel.CorrectionsRequestCommand}" Visibility="{Binding MonthViewModel.HasCorrections, Converter={StaticResource visibilityConverter}}">
+                <Image Source="\Images\Mail.png" Height="18" />
+            </Button>
+            <Button Style="{StaticResource ImageOnlyButtonStyle_WithHoverEffect}" Click="onSettingsClicked" ToolTip="Nastavenia" >
+                <Image Source="\Images\CogWheel.png" Height="20" />
+            </Button>
+        </StackPanel>
+        
+        <!-- LightBulb Note with Arrow, saying "Set User ID first" -->
+        <Grid x:Name="setUserIdHintPanel" IsHitTestVisible="False" Opacity="0.9" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,85,65,0"
+              Visibility="{Binding IsUserIDSetAlready, Converter={StaticResource visibilityConverter}, ConverterParameter='Not'}" >
+            <Image Source="\Images\LightBulb_Note_with_Arrow.png" Stretch="None"  HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-20,-20,0,0" />
+            <TextBlock Foreground="White" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="15,0,0,28">Už len nastaviť ID...</TextBlock>
+        </Grid>
+        
+        <Border x:Name="mainGridOverlayBorder" Visibility="Hidden" MouseLeftButtonDown="onMainGridOverlayClick" Margin="0,20,0,0" Padding="15,110,15,15" CornerRadius="25" Background="Black" BorderBrush="Black" BorderThickness="2" Opacity="0.1" />
+
+        <TextBlock FontSize="15" FontWeight="Bold" Foreground="DarkGreen" IsHitTestVisible="False" Text="{Binding MonthViewModel.TimeWhenZeroIsHit}" Margin="175,110,0,0" />
+
+        <!-- Copyright bottom notice -->
+        <TextBlock Foreground="Brown" FontWeight="ExtraBold" Opacity="0.5" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2" Text="{Binding Copyright, Mode=OneTime}" />
+        
+        <views:MessageBar Margin="0,400,0,0" VerticalAlignment="Top"
+            Visibility="{Binding DataContext.MessageBarVM.IsShown, RelativeSource={RelativeSource FindAncestor, AncestorType=Grid}, Converter={StaticResource visibilityConverter}}"
+            Message="{Binding DataContext.MessageBarVM.MultiRowText, RelativeSource={RelativeSource FindAncestor, AncestorType=Grid}}" />
+    </Grid>
+</Window>

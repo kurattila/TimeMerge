@@ -1,0 +1,57 @@
+body {
+	font-family: arial;
+	font-size: 23px;
+	color: #774b00;
+}
+
+table {
+	border-collapse:collapse;
+}
+
+tr > td {
+	text-align: left;
+	background: lightyellow;
+}
+
+thead > tr > td {
+	background: white;
+}
+
+.dayLabel {
+    text-align: right;
+	padding-right: 10px;
+}
+
+.noWorkDay {
+  color: rgba(119, 75, 0, 0.42);
+}
+
+.noWorkDay > td {
+	background: rgba(255, 255, 224, 0.54);
+}
+
+.balanceOfDay {
+	padding-left: 10px;
+	padding-right: 10px;
+	background: #e8ddc9;
+	font-weight: bold;
+}
+
+.workInterruption {
+	background: rgba(207, 183, 141, 0.47);
+}
+
+.layoutRoot {
+  position: relative;
+}
+
+.monthsContainer {
+  float: left;
+}
+
+@media screen and (min-width: 600px)
+{
+	body {
+		font-size: 18px;
+	}
+}

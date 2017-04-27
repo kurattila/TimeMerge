@@ -1,0 +1,41 @@
+// TimeMergeDeskBand.idl : IDL source for TimeMergeDeskBand.dll
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (TimeMergeDeskBand.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+	[
+		object,
+		uuid(8C737B97-32CF-4FE7-8F9D-16A2EFADA025),
+		dual,
+		helpstring("ITimeMergeBand Interface"),
+		pointer_default(unique)
+	]
+	interface ITimeMergeBand : IDispatch
+	{
+		[id(1), helpstring("Returns whether DeskBand object is shown.")] HRESULT IsDeskBandShown([out, retval] BOOL* bShown);
+	};
+
+[
+	uuid(232C6D69-7BF5-4FDA-B9A8-D7717FA5D7CF),
+	version(1.0),
+	helpstring("TimeMergeDeskBand 1.0 Type Library")
+]
+library TIMEMERGEDESKBANDLib
+{
+	importlib("stdole32.tlb");
+	importlib("stdole2.tlb");
+
+
+	[
+		uuid(C651EE08-1195-4613-B64A-D326F4AFE3D0),
+		helpstring("TimeMerge")
+	]
+	coclass TimeMergeBand
+	{
+		[default] interface ITimeMergeBand;
+	};
+};

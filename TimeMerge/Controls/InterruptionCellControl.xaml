@@ -1,0 +1,42 @@
+﻿<UserControl x:Class="TimeMerge.Controls.InterruptionCellControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:utils="clr-namespace:TimeMerge.Utils"
+             mc:Ignorable="d"
+             d:DesignHeight="20" d:DesignWidth="70" >
+    <UserControl.Resources>
+<!-- 
+        <utils:DebugConverter x:Key="debugConverter" />
+ -->
+    </UserControl.Resources>
+    <Grid x:Name="LayoutRoot" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorLevel=1, AncestorType={x:Type UserControl}}}"
+                              Style="{StaticResource interruptionCellGridStyle}" >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        
+        <!-- Readonly Text shown when _not_ editing the cell: -->
+        <TextBlock x:Name="displayText" Style="{DynamicResource gridCellTextBlockStyle}" Visibility="{Binding IsInEditMode, Converter={StaticResource visibilityConverter}, ConverterParameter=Not}" Text="{Binding DisplayText, Mode=OneWay}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="2,0,2,0">
+            <!-- Add an extra Padding, in order to make it as big as the TextBox.
+                 This will prevent some "visual jumpings" when starting and ending editing of a cell. -->
+            <TextBlock.Padding>1</TextBlock.Padding>
+        </TextBlock>
+        
+        <!-- Image showing InterruptionType graphically (if it is an Interruption WorkSpan _and_ the cell is for the end of the inteval) -->
+        <Image x:Name="interruptTypeImage" Grid.Column="1" Source="{Binding InterruptType, Converter={StaticResource interruptTypeToImageBrush}}">
+            <Image.Visibility>
+                <MultiBinding Converter="{StaticResource visibilityMultiConverter}">
+                    <Binding Path="IsEndOfInterval" />
+                    <Binding Path="IsInterruptWorkSpan" />
+                </MultiBinding>
+            </Image.Visibility>
+            <!-- Do _not_ make the Image higher than the TextBox; it would result in some undesired "visual jumpings" selecting different cells. -->
+            <Image.MaxHeight>15</Image.MaxHeight>
+        </Image>
+
+    </Grid>
+</UserControl>

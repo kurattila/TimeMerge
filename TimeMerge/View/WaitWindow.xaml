@@ -1,0 +1,10 @@
+﻿<Window x:Class="TimeMerge.View.WaitWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" >
+    <StackPanel MinWidth="200" Margin="8">
+        <TextBlock x:Name="messageTextBlock" Text="Connection in progress..." Margin="0,0,0,8" />
+        <ProgressBar IsIndeterminate="True" Height="20" />
+    </StackPanel>
+</Window>

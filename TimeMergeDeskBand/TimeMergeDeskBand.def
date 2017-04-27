@@ -1,0 +1,9 @@
+; TimeMergeDeskBand.def : Declares the module parameters.
+
+LIBRARY      "TimeMergeDeskBand.DLL"
+
+EXPORTS
+	DllCanUnloadNow     PRIVATE
+	DllGetClassObject   PRIVATE
+	DllRegisterServer   PRIVATE
+	DllUnregisterServer	PRIVATE

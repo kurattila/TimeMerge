@@ -1,0 +1,26 @@
+HKCR
+{
+	TimeMergeDeskBand.TimeMergeBand.1 = s 'TimeMerge'
+	{
+		CLSID = s '{C651EE08-1195-4613-B64A-D326F4AFE3D0}'
+	}
+	TimeMergeDeskBand.TimeMergeBand = s 'TimeMerge'
+	{
+		CLSID = s '{C651EE08-1195-4613-B64A-D326F4AFE3D0}'
+		CurVer = s 'TimeMergeDeskBand.TimeMergeBand.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {C651EE08-1195-4613-B64A-D326F4AFE3D0} = s 'TimeMerge'
+		{
+			ProgID = s 'TimeMergeDeskBand.TimeMergeBand.1'
+			VersionIndependentProgID = s 'TimeMergeDeskBand.TimeMergeBand'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{232C6D69-7BF5-4FDA-B9A8-D7717FA5D7CF}'
+		}
+	}
+}
