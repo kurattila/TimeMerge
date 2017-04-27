@@ -248,9 +248,6 @@
     <Resource Include="Images\Pickaxe.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="ToDo TimeMerge.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Images\TimeMergeRibbonStatus.png" />
   </ItemGroup>
   <ItemGroup>
