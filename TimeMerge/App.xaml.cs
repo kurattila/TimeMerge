@@ -211,7 +211,7 @@ namespace TimeMerge
             {
                 fileContents = System.IO.File.ReadAllText(webDavGenericHashPath);
             }
-            finally
+            catch(System.IO.IOException)
             {
                 // Nothing critical if e.g. file does not exist or \\slovensko2 is down at the moment,
                 // it's just that WebDav's XML file won't get uploaded
