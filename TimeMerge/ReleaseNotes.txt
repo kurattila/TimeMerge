@@ -5,7 +5,7 @@ Application is open-sourced now
 Small screens: Application will not overlap taskbar any more (e.g. when having 1024x768, TimeMerge's full height was not visible nor available to user)
 Large screens: 4K monitor compatibility
 Home Office improvement: day will auto-start at remote logon time, rather than application startup time
-Home Office improvement: "Notes" for day introduced (offered on right-click over a cell)
+Home Office improvement: "Notes" for day introduced (offered on right-click over a cell), notes are included in correction mails
 Web access improvement: month stats through WebDAV of http://timemerge.nemetschek.sk now
 
 
