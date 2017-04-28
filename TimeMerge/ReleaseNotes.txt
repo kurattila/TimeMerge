@@ -1,12 +1,12 @@
 =====
 TimeMerge 1.2.7
 =====
-Application is open-sourced now
-Small screens: Application will not overlap taskbar any more (e.g. when having 1024x768, TimeMerge's full height was not visible nor available to user)
-Large screens: 4K monitor compatibility
-Home Office improvement: day will auto-start at remote logon time, rather than application startup time
-Home Office improvement: "Notes" for day introduced (offered on right-click over a cell), notes are included in correction mails
-Web access improvement: month stats through WebDAV of http://timemerge.nemetschek.sk now
+Webovy pristup: na stranke http://timemerge.nemetschek.sk mate svoju vlastnu statistiku (vas osobitny link najdete v aplikacii, v nastaveniach)
+Male obrazovky: aplikacia uz neprekryva taskbar (napr. s rozlisovackou 1024x768, plna vyska TimeMerge nebola viditelna ani pristupna pre uzivatela)
+Velke obrazovky: kompatibilita DeskBandu so 4K monitormi
+Home Office vylepseny: automaticky zaciatok dna je cas remote logon-u, nie cas nastartovania aplikacie
+Home Office vylepseny: "Poznamky" pre dany den (pravy klik nad bunkou), tieto poznamky su automaticky pridane do korekcnych mailov, ktore sa posielaju timovym veducim
+Aplikacia je uz open source
 
 
 
